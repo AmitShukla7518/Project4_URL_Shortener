@@ -36,27 +36,24 @@ const isValid = function (value) {
 };
 const createurl = async function (req, res) {
   try {
+    
     if (Object.keys(req.body).length == 0) {
-      return res.status(400).send({
-        status: false,
-        message: "Invalid request parameters. Please provide URL details",
+     return res.status(400).send({
+      status: false,message: "Invalid request parameters. Please provide URL details",
       });
     }
 
     if (!isValid(req.body.longUrl)) {
-      return res
-        .status(400)
-        .send({ status: false, message: " Please provide LONG URL" });
+      return res.status(400).send({ status: false, message: " Please provide LONG URL" });
     }
 
     const longUrl = req.body.longUrl.trim();
 
 
-    if (!(/(:?^((https|http|HTTP|HTTPS){1}:\/\/)(([w]{3})[\.]{1})?([a-zA-Z0-9]{1,}[\.])[\w]*((\/){1}([\w@?^=%&amp;~+#-_.]+))*)$/.test(longUrl))
-    ) {
+    if (!(/(:?^((https|http|HTTP|HTTPS){1}:\/\/)(([w]{3})[\.]{1})?([a-zA-Z0-9]{1,}[\.])[\w]*((\/){1}([\w@?^=%&amp;~+#-_.]+))*)$/.test(longUrl))) 
+    {
       return res.status(400).send({
-        status: false,
-        message: "Invalid URL Format",
+        status: false,message: "Invalid URL Format",
       });
     }
 
@@ -65,36 +62,24 @@ const createurl = async function (req, res) {
     if (findInCache) {
       let data = JSON.parse(findInCache);
       return res
-        .status(200)
-        .send({
-          status: true,
-          msg: `${longUrl} is already registered and coming from cache`,
-          shortUrl: data.shortUrl,
-        });
+        .status(200).send({status: true,msg: `${longUrl} is already registered and coming from cache`,shortUrl: data.shortUrl});
 
     }
 
     const baseUrl = "http://localhost:3000";
+      let urlCode = shortid.generate().match(/[a-z\A-Z]/g).join("");
+         urlCode = urlCode.toLowerCase();
 
-    let urlCode = shortid
-      .generate()
-      .match(/[a-z\A-Z]/g)
-      .join("");
-    urlCode = urlCode.toLowerCase();
-
-    let url = await urlModel
-      .findOne({ longUrl })
+    let url = await urlModel.findOne({ longUrl })
       .select({ shortUrl: 1, _id: 0 });
 
     if (url) {
       await SET_ASYNC(`${longUrl}`, JSON.stringify(url));
       return res.status(201).send({
-        status: true,
-        msg: `${longUrl} is already registered`,
-        data: url
+        status: true, msg: `${longUrl} is already registered`,data: url
       });
     }
-
+    
     const shortUrl = baseUrl + "/" + urlCode;
     const urlData = { urlCode, longUrl, shortUrl };
     const newurl = await urlModel.create(urlData);
@@ -117,10 +102,7 @@ const createurl = async function (req, res) {
 const geturl = async function (req, res) {
   try {
     let urlData = req.params.urlCode;
-    const urlCode = urlData
-      .split("")
-      .map((a) => a.trim())
-      .join("");
+    const urlCode = urlData.split("").map((a) => a.trim()).join("");
     if (!urlCode) {
       res.status(400).send({ status: false, msg: "please provide UrlCode" });
     }
@@ -129,13 +111,14 @@ const geturl = async function (req, res) {
     if (cachedUrlDataThree) {
       res.redirect(302, cachedUrlDataThree["longUrl"]);
     } else {
+    
       let checkUrlCodevalid = await urlModel.findOne({ urlCode: urlCode })
         .select({ longUrl: 1 });
       if (!checkUrlCodevalid) {
         return res.status(404).send({ status: false, msg: "shortUrl not found" });
       }
       await SET_ASYNC(`${urlCode}`, JSON.stringify(checkUrlCodevalid));
-      res.redirect(302, checkUrlCodevalid.longUrl);
+      res.redirect(200, checkUrlCodevalid.longUrl);
     }
   } catch (error) {
     res.status(500).send({ status: false, msg: "Server Error" });
